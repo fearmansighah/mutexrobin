@@ -1,39 +1,50 @@
-// We will start by adding header files of FreeRTOS and semaphore
-#include <Arduino_FreeRTOS.h>
-#include "semphr.h"
-// create handle for the mutex. It will be used to reference mutex
-SemaphoreHandle_t xMutex;
+/*
+  ENGR 467 Project - RTOS Scheduling and Mutex
+  Mouhamed Jaber (79588794)
+  Darren Widjaja (43027291)
+  Edwin Firmansyah (90320219)
+  This code demonstrates the use of FreeRTOS to schedule tasks as well as
+  using Mutex for task resource sharing. In this code, the resource being
+  shared is the LCD screen.
+*/
+//Libraries import
+#include <Arduino_FreeRTOS.h> //FreeRTOS
+#include "semphr.h" //Semaphore
+#include <LiquidCrystal.h> //LCD screen
 
-void setup()
-{
-    // Enable serial module of Arduino with 9600 baud rate
-    Serial.begin(9600);
-    // create mutex and assign it a already create handler
-    xMutex = xSemaphoreCreateMutex();
-    // create two instances of task "OutputTask" which are used to display string on
-    // arduino serial monitor. We passed strings as a paramter to these tasks such as ""Task 1 //#####################Task1" and "Task 2 ---------------------Task2". Priority of one //instance is higher than the other
-    xTaskCreate(OutputTask, "Printer Task 1", 100, "Task 1 #####################Task1 \r\n", 1, NULL);
-    xTaskCreate(OutputTask, "Printer Task 2", 100, "Task 2 ---------------------Task2 \r\n", 2, NULL);
+//initialization
+SemaphoreHandle_t mutex; //create a mutex handler, used to reference mutex
+LiquidCrystal lcd(7, 8, 9, 10, 11, 12); //initialize the LCD library with the pin numbers
+
+
+void setup() {
+  Serial.begin(9600);
+  lcd.begin(16,2); //set up the LCD's number of columns and rows
+  mutex = xSemaphoreCreateMutex(); //create mutex and assign it to its handler
+  
+  //Creating task
+   xTaskCreate(TaskFunction, "Printer Task 1", 100, "Task 1 running", 2, NULL);
+   xTaskCreate(TaskFunction, "Printer Task 2", 100, "Task 2 running", 1, NULL);
+   xTaskCreate(TaskFunction, "Printer Task 3", 100, "Task 3 running", 1, NULL);
 }
 
-// this is a definition of tasks
-void OutputTask(void *pvParameters)
-{
-    char *pcStringToPrint;
-    pcStringToPrint = (char *)pvParameters;
-    while (1)
-    {
-        printer(pcStringToPrint);
-        vTaskDelay(pdMS_TO_TICKS(100));
-    }
+//Defining the function of a task
+void TaskFunction (void *output){
+  char *string = (char *) output; //casting it from a void pointer to a char pointer
+  while(1){
+    disp(string);
+    vTaskDelay(pdMS_TO_TICKS(200));
+  }
 }
-// this printer task send data to arduino serial monitor
-// aslo it is shared resource between both instances of the tasks
-void printer(const char *pcString)
-{
-    // take mutex
-    xSemaphoreTake(xMutex, portMAX_DELAY);
-    Serial.println(pcString); // send string to serial monitor
-    xSemaphoreGive(xMutex);   // release mutex
+
+//disp function to send the string to the LCD screen
+void disp(const char *printString){
+  xSemaphoreTake(mutex, portMAX_DELAY); //takes mutex
+  Serial.println(printString);
+  lcd.setCursor(0,0);
+  lcd.print(printString);
+  delay(1000);
+  xSemaphoreGive(mutex); //return mutex
 }
+
 void loop() {}

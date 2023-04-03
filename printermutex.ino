@@ -9,42 +9,83 @@
 */
 //Libraries import
 #include <Arduino_FreeRTOS.h> //FreeRTOS
+#include <Wire.h> //Serial Coms Library
 #include "semphr.h" //Semaphore
-#include <LiquidCrystal.h> //LCD screen
+#include <LiquidCrystal_I2C.h> //LCD screen
 
 //initialization
 SemaphoreHandle_t mutex; //create a mutex handler, used to reference mutex
-LiquidCrystal lcd(7, 8, 9, 10, 11, 12); //initialize the LCD library with the pin numbers
-
+LiquidCrystal_I2C lcd(0x3F, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);
+const int button1 = 2;
+const int button2 = 3;
+int balance = 100;
+bool bt1 = false;
+bool bt2 = false;
+int n = 0; 
 
 void setup() {
   Serial.begin(9600);
   lcd.begin(16,2); //set up the LCD's number of columns and rows
   mutex = xSemaphoreCreateMutex(); //create mutex and assign it to its handler
-  
-  //Creating task
-   xTaskCreate(TaskFunction, "Printer Task 1", 100, "Task 1 running", 2, NULL);
-   xTaskCreate(TaskFunction, "Printer Task 2", 100, "Task 2 running", 1, NULL);
-   xTaskCreate(TaskFunction, "Printer Task 3", 100, "Task 3 running", 1, NULL);
+  xTaskCreate(printSerial, "Printer Task 3", 100, "Main frame view", 3, NULL);
+  pinMode(button1, INPUT_PULLUP);
+  pinMode(button2, INPUT_PULLUP);
 }
 
-//Defining the function of a task
-void TaskFunction (void *output){
-  char *string = (char *) output; //casting it from a void pointer to a char pointer
+void loop() {
+  if(digitalRead(button1)){
+    bt1 = true;
+  }
+  
+  if(digitalRead(button1)){
+    bt2 = true;
+  }
+  delay(250);
+  if(bt1 && bt2){
+    n+=2;
+    xTaskCreate(deposit, "Printer Task 1", 100, "Deposit $20", 2, NULL);
+    xTaskCreate(withdraw, "Printer Task 2", 100, "Withdraw $20", 1, NULL);
+    n-=2;
+    bt1 = false;
+    bt2 = false;
+  }else if(bt1 && !bt2){
+    n+=1;
+    xTaskCreate(deposit, "Printer Task 1", 100, "Deposit $20", 2, NULL);
+    n-=1;
+    bt1 = false;
+  }else if(bt2 && !bt1){
+    n+=1;
+    xTaskCreate(withdraw, "Printer Task 2", 100, "Withdraw $20", 1, NULL);
+    n-=1;
+    bt2 = false;
+  }
+ }
+
+//printing parameters to serial monitor
+void printSerial (){
   while(1){
-    disp(string);
-    vTaskDelay(pdMS_TO_TICKS(200));
+    Serial.println("************************************************");
+    Serial.println("Number of access: " + n);
+    Serial.println("Current Balance: " + balance);
+    Serial.println("************************************************");
+    vTaskDelay(pdMS_TO_TICKS(2000));
   }
 }
 
-//disp function to send the string to the LCD screen
-void disp(const char *printString){
+void deposit (void *output){
+  char *string = (char *) output; //casting it from a void pointer to a char pointer
   xSemaphoreTake(mutex, portMAX_DELAY); //takes mutex
-  Serial.println(printString);
-  lcd.setCursor(0,0);
-  lcd.print(printString);
-  delay(1000);
-  xSemaphoreGive(mutex); //return mutex
+  balance += 20;
+  lcd.print(output);
+  delay(3000);
+  xSemaphoreGive(mutex);
 }
-
-void loop() {}
+void withdraw (void *output){
+  char *string = (char *) output; //casting it from a void pointer to a char pointer
+  xSemaphoreTake(mutex, portMAX_DELAY); //takes mutex
+  balance -= 20;
+  lcd.setCursor(0,0);
+  lcd.print(output);
+  delay(3000);
+  xSemaphoreGive(mutex);
+}

@@ -76,6 +76,7 @@ void deposit (void *output){
   char *string = (char *) output; //casting it from a void pointer to a char pointer
   xSemaphoreTake(mutex, portMAX_DELAY); //takes mutex
   balance += 20;
+  lcd.setCursor(0,0);
   lcd.print(output);
   delay(3000);
   xSemaphoreGive(mutex);

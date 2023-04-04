@@ -28,21 +28,32 @@ void setup()
   Serial.begin(9600);
   lcd.begin(16, 2);                // set up the LCD's number of columns and rows
   mutex = xSemaphoreCreateMutex(); // create mutex and assign it to its handler
-  xTaskCreate(printSerial, "Printer Task 3", 100, "Main frame view", 3, NULL);
-  pinMode(button1, INPUT_PULLUP);
-  pinMode(button2, INPUT_PULLUP);
+  xTaskCreate(printSerial, "Mainframe View", 100, "", 3, NULL);
+  xTaskCreate(pollButton, "pollButton1", 100, button1, 2, NULL);
+  xTaskCreate(pollButton, "pollButton2", 100, button2, 2, NULL);
+}
+
+pollButton1(void button)
+{
+  while (1)
+  {
+    if (digitalRead(button))
+    {
+      bt1 = true;
+    }
+  }
 }
 
 void loop()
 {
   if (digitalRead(button1))
   {
-    bt1 = false;
+    bt1 = true;
   }
 
   if (digitalRead(button1))
   {
-    bt2 = false;
+    bt2 = true;
   }
   delay(250);
   if (bt1 && bt2)

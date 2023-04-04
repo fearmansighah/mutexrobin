@@ -22,7 +22,6 @@ int balance = 100;
 bool bt1 = true;
 bool bt2 = true;
 int n = 0;
-bool transaction_type = true; // true = deposit, false = withdraw;
 
 void setup()
 {
@@ -33,7 +32,8 @@ void setup()
   pinMode(button2, INPUT_PULLUP);
 
   lcd.setCursor(0, 0);
-  lcd.print("$");lcd.print(balance);
+  lcd.print("$");
+  lcd.print(balance);
 
   xTaskCreate(printSerial, "serial monitor resource", 100, "Main frame view", 2, NULL);
   xTaskCreate(pollButton1, "button resource", 100, NULL, 1, NULL);
@@ -46,31 +46,39 @@ void printSerial()
 {
   while (1)
   {
-    Serial.print("N: "); Serial.print(n); Serial.print(" | B: "); Serial.println(balance);
+    Serial.print("N: ");
+    Serial.print(n);
+    Serial.print(" | B: ");
+    Serial.println(balance);
     vTaskDelay(pdMS_TO_TICKS(1000));
   }
 }
 
-
-void pollButton1(){
-  transaction_type = 
-  while(1){
+void pollButton1()
+{
+  transaction_type =
+      while (1)
+  {
     bt1 = !digitalRead(button1);
-    if (bt1){
+    if (bt1)
+    {
       delay(100);
-      //Serial.println(!digitalRead(button1));
-      transaction();
+      // Serial.println(!digitalRead(button1));
+      deposit();
     }
   }
   vTaskDelay(pdMS_TO_TICKS(100));
 }
 
-void pollButton2(){
-  while(1){
+void pollButton2()
+{
+  while (1)
+  {
     bt2 = !digitalRead(button2);
-    if (bt2){
+    if (bt2)
+    {
       delay(100);
-      //Serial.println(!digitalRead(button2));
+      // Serial.println(!digitalRead(button2));
       withdraw();
     }
   }
@@ -79,34 +87,37 @@ void pollButton2(){
 
 void deposit()
 {
-  //Serial.println(balance);
+  // Serial.println(balance);
   n += 1;
   xSemaphoreTake(mutex, portMAX_DELAY); // takes mutex
   balance += 20;
-  //Serial.println(balance);
+  // Serial.println(balance);
   lcd.setCursor(0, 0);
   lcd.clear();
   lcd.print("+$20");
   delay(2000);
   lcd.clear();
-  lcd.print("$");lcd.print(balance);
-  n -=1;
+  lcd.print("$");
+  lcd.print(balance);
+  n -= 1;
   xSemaphoreGive(mutex);
 }
 
 void withdraw()
 {
   n += 1;
-  //Serial.println(balance);
+  // Serial.println(balance);
   xSemaphoreTake(mutex, portMAX_DELAY); // takes mutex
   balance -= 20;
-  //Serial.println(balance);
+  // Serial.println(balance);
   lcd.setCursor(0, 0);
   lcd.clear();
-  lcd.print("$");lcd.print(balance);
-  n -=1;
+  lcd.print("$");
+  lcd.print(balance);
+  n -= 1;
   xSemaphoreGive(mutex);
 }
 
-void loop(){
+void loop()
+{
 }

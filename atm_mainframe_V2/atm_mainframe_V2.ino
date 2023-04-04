@@ -21,14 +21,15 @@ LiquidCrystal_I2C lcd(0x3F, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);
 int balance = 100;
 bool bt1 = true;
 bool bt2 = true;
-int n = 0;
+int n_requests = 0;
+int n_blocked = 0;
 bool transaction_type = true; // true = deposit, false = withdraw;
 
 void setup()
 {
   Serial.begin(9600);
   lcd.begin(16, 2);                // set up the LCD's number of columns and rows
-  mutex = xSemaphoreCreateMutex(); // create mutex and assign it to its handler
+  transaction_mutex = xSemaphoreCreateMutex(); // create mutex and assign it to its handler
   pinMode(button1, INPUT_PULLUP);
   pinMode(button2, INPUT_PULLUP);
 
@@ -46,66 +47,76 @@ void printSerial()
 {
   while (1)
   {
-    Serial.print("N: "); Serial.print(n); Serial.print(" | B: "); Serial.println(balance);
+    Serial.print("NR: "); Serial.print(n_requests); 
+    Serial.print(" | NB: "); Serial.print(n_blocked); 
+    Serial.print(" | B: "); Serial.print(" | B: "); Serial.println(balance);
     vTaskDelay(pdMS_TO_TICKS(1000));
   }
 }
 
 
 void pollButton1(){
-  transaction_type = 
   while(1){
     bt1 = !digitalRead(button1);
     if (bt1){
       delay(100);
       //Serial.println(!digitalRead(button1));
-      transaction();
+      transaction_type = true;
+      transaction(transaction_type);
     }
   }
   vTaskDelay(pdMS_TO_TICKS(100));
 }
 
 void pollButton2(){
+  
   while(1){
     bt2 = !digitalRead(button2);
     if (bt2){
       delay(100);
       //Serial.println(!digitalRead(button2));
-      withdraw();
+      transaction_type = false;
+      transaction(transaction_type);
     }
   }
   vTaskDelay(pdMS_TO_TICKS(100));
 }
 
-void deposit()
-{
-  //Serial.println(balance);
-  n += 1;
-  xSemaphoreTake(mutex, portMAX_DELAY); // takes mutex
-  balance += 20;
-  //Serial.println(balance);
-  lcd.setCursor(0, 0);
-  lcd.clear();
-  lcd.print("+$20");
-  delay(2000);
-  lcd.clear();
-  lcd.print("$");lcd.print(balance);
-  n -=1;
-  xSemaphoreGive(mutex);
-}
 
-void withdraw()
+void transaction(bool type)
 {
-  n += 1;
-  //Serial.println(balance);
-  xSemaphoreTake(mutex, portMAX_DELAY); // takes mutex
-  balance -= 20;
-  //Serial.println(balance);
-  lcd.setCursor(0, 0);
-  lcd.clear();
-  lcd.print("$");lcd.print(balance);
-  n -=1;
-  xSemaphoreGive(mutex);
+  n_requests += 1; // increment number of requests being made to mainframe
+  
+  if(xSemaphoreTake(transaction_mutex, portMAX_DELAY) == pdTRUE){
+
+  // now that we can access the resource:
+    if(type){ // deposit operation by User A and update User A view
+      balance += 20;
+      lcd.setCursor(0, 0);
+      lcd.clear();
+      lcd.print("+$20");
+      delay(2000);
+      lcd.clear();
+      lcd.print("$"); lcd.print(balance);
+      } 
+    else{ // withdraw operation by User B and update User A view
+      balance -= 20;
+      lcd.setCursor(0, 0);
+      lcd.clear();
+      lcd.print("$");lcd.print(balance);
+      }
+   
+    if (n_blocked>0){ // decrement number of blocked requests made to mutex now that it has been fulfilled
+      n_blocked -= 1;
+      }
+      
+    n_requests -= 1; // decrement number of requests to mainframe now that it has been fulfilled
+    xSemaphoreGive(transaction_mutex); 
+  }
+  else
+  {
+    n_blocked += 1; // increment number of blocked requests made to mutex
+  }
 }
 
 void loop(){

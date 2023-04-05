@@ -14,7 +14,7 @@
 #include <LiquidCrystal_I2C.h> //LCD screen
 
 // initialization
-SemaphoreHandle_t mutex; // create a mutex handler, used to reference mutex
+SemaphoreHandle_t transaction_mutex; // create a mutex handler, used to reference mutex
 LiquidCrystal_I2C lcd(0x3F, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);
 #define button1 2
 #define button2 3
@@ -37,7 +37,7 @@ void setup()
   lcd.print("$");
   lcd.print(balance);
 
-  xTaskCreate(printSerial, "serial monitor resource", 100, "Main frame view", 2, NULL);
+  xTaskCreate(printSerial, "serial monitor resource", 100, NULL, 2, NULL);
   xTaskCreate(pollButton1, "button resource", 100, NULL, 1, NULL);
   xTaskCreate(pollButton2, "button resource", 100, NULL, 1, NULL);
   vTaskStartScheduler();

@@ -62,11 +62,12 @@ void pollButton1()
     if (bt1)
     {
       delay(100);
-      // Serial.println(!digitalRead(button1));
+      //Serial.println(!digitalRead(button1));
       deposit();
+      vTaskDelay(pdMS_TO_TICKS(100));
+
     }
   }
-  vTaskDelay(pdMS_TO_TICKS(100));
 }
 
 void pollButton2()
@@ -77,11 +78,12 @@ void pollButton2()
     if (bt2)
     {
       delay(100);
-      // Serial.println(!digitalRead(button2));
+      //Serial.println(!digitalRead(button2));
       withdraw();
+      vTaskDelay(pdMS_TO_TICKS(100));
+
     }
   }
-  vTaskDelay(pdMS_TO_TICKS(100));
 }
 
 void deposit()
@@ -111,6 +113,7 @@ void withdraw()
   // Serial.println(balance);
   lcd.setCursor(0, 0);
   lcd.clear();
+  delay(2000);
   lcd.print("$");
   lcd.print(balance);
   n -= 1;

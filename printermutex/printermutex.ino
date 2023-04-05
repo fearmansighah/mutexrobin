@@ -14,7 +14,7 @@
 #include <LiquidCrystal_I2C.h> //LCD screen
 
 // initialization
-SemaphoreHandle_t mutex; // create a mutex handler, used to reference mutex
+SemaphoreHandle_t transaction_mutex; // create a mutex handler, used to reference mutex
 LiquidCrystal_I2C lcd(0x3F, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);
 #define button1 2
 #define button2 3

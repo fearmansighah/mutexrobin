@@ -56,8 +56,7 @@ void printSerial()
 
 void pollButton1()
 {
-  transaction_type =
-      while (1)
+  while (1)
   {
     bt1 = !digitalRead(button1);
     if (bt1)
